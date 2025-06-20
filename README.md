@@ -1,6 +1,6 @@
 # Kokonsa Blog Platform
 
-Kokonsa is a modern, feature-rich blogging platform built with Flask and SQLite. It offers a clean, responsive design with a focus on user experience and content presentation.
+Kokonsa is blogging platform built with Flask and SQLite. It offers a clean, responsive design with a focus on user experience and content presentation.
 
 ## Features
 
