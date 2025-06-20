@@ -1,9 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" class="logo">
-  <style>
-    .logo-text { font-family: 'Arial', sans-serif; font-weight: bold; }
-    .dark .logo-text { fill: #ffffff; }
-    .light .logo-text { fill: #000000; }
-  </style>
-  <text x="10" y="35" class="logo-text" font-size="30">Kokonsa</text>
-  <circle cx="170" cy="25" r="15" fill="#4CAF50"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&amp;display=swap');
+      .logo-text { font-family: 'Dancing Script', cursive; }
+      .dark .logo-text { fill: #ffffff; }
+      .light .logo-text { fill: #2d3748; }
+      .chat-bubble { fill: #4CAF50; transition: fill 0.3s ease; }
+      .dark .chat-bubble { fill: #68D391; }
+      .sparkle { fill: #FFD700; }
+    </style>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Chat Bubbles -->
+  <g transform="translate(220,40)" filter="url(#glow)">
+    <path class="chat-bubble" d="M0,0 C30,0 30,0 30,-20 C30,-40 0,-40 0,-20 L0,0 Z" />
+    <path class="chat-bubble" d="M-15,-25 C5,-25 5,-25 5,-40 C5,-55 -15,-55 -15,-40 L-15,-25 Z" transform="scale(0.8)" />
+    <path class="chat-bubble" d="M15,-30 C35,-30 35,-30 35,-45 C35,-60 15,-60 15,-45 L15,-30 Z" transform="scale(0.6)" />
+  </g>
+  
+  <!-- Sparkles -->
+  <g class="sparkle" transform="translate(200,20)">
+    <path d="M0,0 L2,5 L0,10 L-2,5 Z" transform="rotate(45)"/>
+    <path d="M10,-5 L12,0 L10,5 L8,0 Z" transform="rotate(30)"/>
+    <path d="M-8,8 L-6,13 L-8,18 L-10,13 Z" transform="rotate(-15)"/>
+  </g>
+  
+  <!-- Logo Text -->
+  <text x="20" y="50" class="logo-text" font-size="48" filter="url(#glow)">Kokonsa</text>
 </svg>
