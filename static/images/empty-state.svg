@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <style>
+    .empty-icon { fill: #e0e0e0; }
+    .dark .empty-icon { fill: #424242; }
+  </style>
+  <rect x="40" y="60" width="120" height="80" class="empty-icon" rx="5"/>
+  <path d="M60 90 L140 90" stroke="#fff" stroke-width="2"/>
+  <path d="M60 110 L120 110" stroke="#fff" stroke-width="2"/>
+  <path d="M60 130 L100 130" stroke="#fff" stroke-width="2"/>
+  <text x="100" y="170" text-anchor="middle" fill="#666" font-family="Arial" font-size="14">No content yet</text>
+</svg>

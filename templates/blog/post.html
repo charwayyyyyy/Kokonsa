@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <article class="post-detail">
+            <!-- Post Header -->
+            <header class="post-header mb-4">
+                <h1 class="post-title">{{ post.title }}</h1>
+                
+                <div class="post-meta d-flex align-items-center">
+                    <div class="author-info d-flex align-items-center">
+                        <img src="{{ url_for('static', filename='avatars/' + post.author.avatar) if post.author.avatar else 'https://ui-avatars.com/api/?name=' + post.author.username }}" 
+                             alt="{{ post.author.username }}" 
+                             class="rounded-circle me-2" 
+                             width="40" 
+                             height="40">
+                        <div>
+                            <div class="author-name">{{ post.author.username }}</div>
+                            <div class="post-date text-muted">
+                                {{ post.created_at.strftime('%B %d, %Y') }}
+                                {% if post.updated_at != post.created_at %}
+                                    (Updated: {{ post.updated_at.strftime('%B %d, %Y') }})
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if current_user.is_authenticated and (current_user == post.author or current_user.is_admin) %}
+                    <div class="post-actions ms-auto">
+                        <a href="{{ url_for('blog.edit_post', id=post.id) }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if post.tags %}
+                <div class="post-tags my-3">
+                    {% for tag in post.tags %}
+                    <a href="{{ url_for('blog.tag', name=tag.name) }}" class="tag">
+                        {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </header>
+            
+            <!-- Post Content -->
+            <div class="post-content mb-4">
+                {{ post.content|markdown }}
+            </div>
+            
+            <!-- Post Footer -->
+            <footer class="post-footer">
+                <!-- Reactions -->
+                <div class="reactions mb-4">
+                    <button class="reaction-button {% if current_user.is_authenticated and post.reactions.filter_by(user=current_user, type='like').first() %}active{% endif %}"
+                            onclick="handleReaction({{ post.id }}, 'like')"
+                            data-reaction="like"
+                            data-post="{{ post.id }}">
+                        <i class="far fa-heart"></i>
+                        <span class="reaction-count">{{ post.reactions.filter_by(type='like').count() }}</span>
+                    </button>
+                    
+                    <button class="reaction-button {% if current_user.is_authenticated and post.reactions.filter_by(user=current_user, type='clap').first() %}active{% endif %}"
+                            onclick="handleReaction({{ post.id }}, 'clap')"
+                            data-reaction="clap"
+                            data-post="{{ post.id }}">
+                        <i class="fas fa-hands-clapping"></i>
+                        <span class="reaction-count">{{ post.reactions.filter_by(type='clap').count() }}</span>
+                    </button>
+                </div>
+                
+                <!-- Author Bio -->
+                <div class="author-bio card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ url_for('static', filename='avatars/' + post.author.avatar) if post.author.avatar else 'https://ui-avatars.com/api/?name=' + post.author.username }}" 
+                                 alt="{{ post.author.username }}" 
+                                 class="rounded-circle me-3" 
+                                 width="64" 
+                                 height="64">
+                            <div>
+                                <h5 class="card-title mb-1">About {{ post.author.username }}</h5>
+                                <div class="text-muted">Author</div>
+                            </div>
+                        </div>
+                        <p class="card-text">{{ post.author.bio or 'No bio available.' }}</p>
+                    </div>
+                </div>
+            </footer>
+            
+            <!-- Comments Section -->
+            <section class="comments">
+                <h3 class="comments-title mb-4">Comments ({{ post.comments.filter_by(is_approved=True).count() }})</h3>
+                
+                {% if current_user.is_authenticated %}
+                <div class="comment-form mb-4">
+                    <form method="POST" action="{{ url_for('blog.add_comment', id=post.id) }}" onsubmit="handleCommentSubmit(event, {{ post.id }})">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.content(class="form-control", rows="3", placeholder="Write your comment...") }}
+                            {% for error in form.content.errors %}
+                                <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Post Comment</button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    Please <a href="{{ url_for('auth.login') }}">login</a> to leave a comment.
+                </div>
+                {% endif %}
+                
+                <div class="comments-list">
+                    {% for comment in post.comments.filter_by(is_approved=True).order_by(Comment.created_at.desc()) %}
+                    <div class="comment">
+                        <div class="comment-meta d-flex align-items-center mb-2">
+                            <img src="{{ url_for('static', filename='avatars/' + comment.author.avatar) if comment.author.avatar else 'https://ui-avatars.com/api/?name=' + comment.author.username }}" 
+                                 alt="{{ comment.author.username }}" 
+                                 class="rounded-circle me-2" 
+                                 width="32" 
+                                 height="32">
+                            <div>
+                                <div class="comment-author">{{ comment.author.username }}</div>
+                                <div class="comment-date text-muted">{{ comment.created_at.strftime('%B %d, %Y %H:%M') }}</div>
+                            </div>
+                        </div>
+                        <div class="comment-content">
+                            {{ comment.content }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </article>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <aside class="sidebar sticky-top" style="top: 2rem;">
+            <!-- Related Posts -->
+            <div class="mb-4">
+                <h3 class="sidebar-title">Related Posts</h3>
+                <div class="list-group list-group-flush">
+                    {% for related_post in related_posts %}
+                    <a href="{{ url_for('blog.post', id=related_post.id) }}" class="list-group-item list-group-item-action">
+                        {{ related_post.title }}
+                        <small class="text-muted d-block">{{ related_post.created_at.strftime('%B %d, %Y') }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Popular Tags -->
+            <div class="mb-4">
+                <h3 class="sidebar-title">Popular Tags</h3>
+                <div class="tags-cloud">
+                    {% for tag in popular_tags %}
+                    <a href="{{ url_for('blog.tag', name=tag.name) }}" class="tag">
+                        {{ tag.name }}
+                        <span class="badge bg-secondary">{{ tag.posts.count() }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Delete Post Modal -->
+{% if current_user.is_authenticated and (current_user == post.author or current_user.is_admin) %}
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Post</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this post? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="{{ url_for('blog.delete_post', id=post.id) }}" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize markdown content
+    document.querySelectorAll('.post-content img').forEach(img => {
+        img.classList.add('img-fluid');
+    });
+    
+    // Initialize code highlighting
+    document.querySelectorAll('pre code').forEach((block) => {
+        hljs.highlightBlock(block);
+    });
+</script>
+{% endblock %}

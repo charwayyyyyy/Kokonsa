@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <div class="posts-container">
+            {% for post in posts.items %}
+            <article class="post-card">
+                <h2 class="post-title">
+                    <a href="{{ url_for('blog.post', id=post.id) }}" class="text-decoration-none">
+                        {{ post.title }}
+                    </a>
+                </h2>
+                
+                <div class="post-meta">
+                    <span class="author">
+                        <img src="{{ url_for('static', filename='avatars/' + post.author.avatar) if post.author.avatar else 'https://ui-avatars.com/api/?name=' + post.author.username }}" 
+                             alt="{{ post.author.username }}" 
+                             class="rounded-circle" 
+                             width="24" 
+                             height="24">
+                        {{ post.author.username }}
+                    </span>
+                    <span class="date ms-3">
+                        <i class="far fa-calendar"></i>
+                        {{ post.created_at.strftime('%B %d, %Y') }}
+                    </span>
+                    <span class="comments ms-3">
+                        <i class="far fa-comment"></i>
+                        {{ post.comments.count() }} Comments
+                    </span>
+                </div>
+                
+                {% if post.tags %}
+                <div class="post-tags mb-3">
+                    {% for tag in post.tags %}
+                    <a href="{{ url_for('blog.tag', name=tag.name) }}" class="tag">
+                        {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="post-excerpt">
+                    {{ post.excerpt or post.content[:200] + '...' }}
+                </div>
+                
+                <div class="post-footer d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('blog.post', id=post.id) }}" class="btn btn-outline-primary">
+                        Read More
+                    </a>
+                    
+                    <div class="reactions">
+                        <button class="reaction-button {% if current_user.is_authenticated and post.reactions.filter_by(user=current_user, type='like').first() %}active{% endif %}"
+                                onclick="handleReaction({{ post.id }}, 'like')"
+                                data-reaction="like"
+                                data-post="{{ post.id }}">
+                            <i class="far fa-heart"></i>
+                            <span class="reaction-count">{{ post.reactions.filter_by(type='like').count() }}</span>
+                        </button>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+            
+            <!-- Pagination -->
+            {% if posts.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% for page in posts.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                        {% if page %}
+                            <li class="page-item {% if page == posts.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('blog.index', page=page) }}">{{ page }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+            <!-- Infinite Scroll Trigger -->
+            <div class="load-more-trigger" style="height: 1px;"></div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <aside class="sidebar sticky-top" style="top: 2rem;">
+            <!-- About Widget -->
+            <div class="mb-4">
+                <h3 class="sidebar-title">About Kokonsa</h3>
+                <p>A blogging platform for sharing stories, ideas, and connecting with others.</p>
+            </div>
+            
+            <!-- Search Widget -->
+            <div class="mb-4">
+                <h3 class="sidebar-title">Search</h3>
+                <form action="{{ url_for('blog.search') }}" method="get">
+                    <div class="input-group">
+                        <input type="search" class="form-control" placeholder="Search posts..." name="q">
+                        <button class="btn btn-primary" type="submit" title="Search"></button>
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Recent Posts Widget -->
+            <div class="mb-4">
+                <h3 class="sidebar-title">Recent Posts</h3>
+                <div class="list-group list-group-flush">
+                    {% for recent_post in recent_posts %}
+                    <a href="{{ url_for('blog.post', id=recent_post.id) }}" class="list-group-item list-group-item-action">
+                        {{ recent_post.title }}
+                        <small class="text-muted d-block">{{ recent_post.created_at.strftime('%B %d, %Y') }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Categories Widget -->
+            <div class="mb-4">
+                <h3 class="sidebar-title">Categories</h3>
+                <div class="tags-cloud">
+                    {% for tag in tags %}
+                    <a href="{{ url_for('blog.tag', name=tag.name) }}" class="tag">
+                        {{ tag.name }}
+                        <span class="badge bg-secondary">{{ tag.posts.count() }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Kokonsa of the Day -->
+            {% if featured_post %}
+            <div class="mb-4">
+                <h3 class="sidebar-title">Kokonsa of the Day</h3>
+                <div class="card">
+                    {% if featured_post.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + featured_post.image) }}" 
+                         class="card-img-top" 
+                         alt="{{ featured_post.title }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ featured_post.title }}</h5>
+                        <p class="card-text">{{ featured_post.excerpt or featured_post.content[:100] + '...' }}</p>
+                        <a href="{{ url_for('blog.post', id=featured_post.id) }}" class="btn btn-primary btn-sm">Read More</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+</div>
+{% endblock %}

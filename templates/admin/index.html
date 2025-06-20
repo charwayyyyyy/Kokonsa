@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header mb-4">
+        <h1 class="h3">Admin Dashboard</h1>
+        <p class="text-muted">Manage blogs' content and users</p>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Total Users</h5>
+                    <h2 class="card-text">{{ total_users }}</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-users"></i> Active community
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Total Posts</h5>
+                    <h2 class="card-text">{{ total_posts }}</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-file-alt"></i> Published content
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <h5 class="card-title text-info">Total Comments</h5>
+                    <h2 class="card-text">{{ total_comments }}</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-comments"></i> Community engagement
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">Pending Comments</h5>
+                    <h2 class="card-text">{{ pending_comments }}</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-clock"></i> Awaiting moderation
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-users me-2"></i> Manage Users
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.posts') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-file-alt me-2"></i> Manage Posts
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.comments') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-comments me-2"></i> Manage Comments
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{{ url_for('admin.tags') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-tags me-2"></i> Manage Tags
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="row">
+        <!-- Recent Posts -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recent Posts</h5>
+                    <a href="{{ url_for('admin.posts') }}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for post in recent_posts %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ post.title }}</h6>
+                            <small class="text-muted">{{ post.created_at.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        <p class="mb-1 text-muted">by {{ post.author.username }}</p>
+                        <small>
+                            <span class="badge bg-{{ 'success' if post.is_published else 'warning' }}">
+                                {{ 'Published' if post.is_published else 'Draft' }}
+                            </span>
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Comments -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recent Comments</h5>
+                    <a href="{{ url_for('admin.comments') }}" class="btn btn-sm btn-primary">View All</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for comment in recent_comments %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ comment.author.username }}</h6>
+                            <small class="text-muted">{{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <p class="mb-1">{{ comment.content[:100] }}...</p>
+                        <small>
+                            <span class="badge bg-{{ 'success' if comment.is_approved else 'warning' }}">
+                                {{ 'Approved' if comment.is_approved else 'Pending' }}
+                            </span>
+                            on post: {{ comment.post.title }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stats-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.stats-card .card-title {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stats-card .card-text {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 10px 0;
+}
+
+.quick-actions .btn {
+    padding: 1rem;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.quick-actions .btn:hover {
+    transform: translateY(-2px);
+}
+
+[data-theme="dark"] .stats-card {
+    background: #2d3748;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+[data-theme="dark"] .card {
+    background: #2d3748;
+    border-color: #4a5568;
+}
+
+[data-theme="dark"] .list-group-item {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #fff;
+}
+</style>
+{% endblock %}

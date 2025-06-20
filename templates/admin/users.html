@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Manage Users - Admin Dashboard{% endblock %}
+{% block content %}
+<div class="admin-users">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3">Manage Users</h1>
+            <p class="text-muted">Total Users: {{ total_users }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <form class="d-flex" action="{{ url_for('admin.users') }}" method="get">
+                <input type="search" name="q" class="form-control me-2" placeholder="Search users..." value="{{ request.args.get('q', '') }}">
+                <button type="submit" class="btn btn-outline-primary" title="Search users"></button>
+                    <i class="fas fa-search"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Joined</th>
+                        <th>Posts</th>
+                        <th>Comments</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="{{ user.avatar_url or url_for('static', filename='images/default-avatar.png') }}" 
+                                     class="rounded-circle me-2" 
+                                     width="40" 
+                                     height="40"
+                                     alt="{{ user.username }}">
+                                <div>
+                                    <h6 class="mb-0">{{ user.username }}</h6>
+                                    {% if user.is_admin %}
+                                    <span class="badge bg-primary">Admin</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ user.posts|length }}</td>
+                        <td>{{ user.comments|length }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if user.is_active else 'danger' }}">
+                                {{ 'Active' if user.is_active else 'Inactive' }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button type="button" 
+                                        class="btn btn-sm btn-{{ 'danger' if user.is_admin else 'success' }}"
+                                        onclick="toggleAdminStatus('{{ user.id }}', {{ 'false' if user.is_admin else 'true' }})">
+                                    {{ 'Remove Admin' if user.is_admin else 'Make Admin' }}
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-sm btn-{{ 'warning' if user.is_active else 'info' }}"
+                                        onclick="toggleUserStatus('{{ user.id }}', {{ 'false' if user.is_active else 'true' }})">
+                                    {{ 'Deactivate' if user.is_active else 'Activate' }}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav class="mt-4" aria-label="Users pagination">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.users', page=pagination.prev_num, q=request.args.get('q', '')) }}">
+                    Previous
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for page in pagination.iter_pages() %}
+                {% if page %}
+                    <li class="page-item {{ 'active' if page == pagination.page else '' }}">
+                        <a class="page-link" href="{{ url_for('admin.users', page=page, q=request.args.get('q', '')) }}">
+                            {{ page }}
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin.users', page=pagination.next_num, q=request.args.get('q', '')) }}">
+                    Next
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<style>
+.admin-users .card {
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+}
+
+.admin-users .table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.admin-users .btn-group .btn {
+    border-radius: 5px;
+    margin: 0 2px;
+}
+
+[data-theme="dark"] .admin-users .card {
+    background: #2d3748;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+[data-theme="dark"] .table {
+    color: #fff;
+}
+
+[data-theme="dark"] .table td,
+[data-theme="dark"] .table th {
+    border-color: #4a5568;
+}
+</style>
+
+<script>
+function toggleAdminStatus(userId, makeAdmin) {
+    if (!confirm(`Are you sure you want to ${makeAdmin ? 'make this user an admin' : 'remove admin privileges'}?`)) {
+        return;
+    }
+    
+    fetch(`/admin/users/${userId}/toggle-admin`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ is_admin: makeAdmin })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to update admin status: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating admin status');
+    });
+}
+
+function toggleUserStatus(userId, makeActive) {
+    if (!confirm(`Are you sure you want to ${makeActive ? 'activate' : 'deactivate'} this user?`)) {
+        return;
+    }
+    
+    fetch(`/admin/users/${userId}/toggle-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({ is_active: makeActive })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to update user status: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating user status');
+    });
+}
+</script>
+{% endblock %}
