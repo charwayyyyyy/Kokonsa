@@ -64,7 +64,9 @@
 
     <!-- Pagination -->
     <nav class="mt-4" aria-label="Tags pagination">
-        <ul class="pagination justify-content-center">{% if pagination.has_prev %}<li class="page-item">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item"></li>
             {% if pagination.has_prev %}
             <li class="page-item">
                 <a class="page-link" href="{{ url_for('admin.tags', page=pagination.prev_num) }}">

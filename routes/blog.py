@@ -45,6 +45,15 @@ def create_post():
         return redirect(url_for('blog.post', id=post.id))
     return render_template('blog/create_post.html', form=form)
 
+@blog_bp.route('/posts')
+@login_required
+def my_posts():
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.filter_by(author=current_user).order_by(Post.created_at.desc()).paginate(
+        page=page, per_page=10, error_out=False)
+    return render_template('blog/my_posts.html', posts=posts)
+    
+
 @blog_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_post(id):
