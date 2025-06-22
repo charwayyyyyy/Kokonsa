@@ -26,13 +26,6 @@ Kokonsa is blogging platform built with Flask and SQLite. It offers a clean, res
   - Tag-based filtering
   - Pagination
 
-- **Modern UI/UX**
-  - Responsive design
-  - Dark/light mode toggle
-  - iOS-style wave forms for login/signup
-  - Clean typography
-  - Sidebar widgets
-
 - **Admin Dashboard**
   - User management
   - Content moderation
