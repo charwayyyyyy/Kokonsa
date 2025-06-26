@@ -1,18 +1,73 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from models import Post, Comment, Tag, Reaction, db
+from models import Post, Comment, Tag, Reaction, db, Follow, UserTagFollow, CommentUpvote, Badge, UserBadge, User
 from forms.blog import PostForm, CommentForm
 from markdown import markdown
 from sqlalchemy import or_
 
+from sqlalchemy import desc, func
 blog_bp = Blueprint('blog', __name__)
 
 @blog_bp.route('/')
 def index():
     page = request.args.get('page', 1, type=int)
-    posts = Post.query.filter_by(is_published=True).order_by(Post.created_at.desc()).paginate(
-        page=page, per_page=10, error_out=False)
+    # If user is logged in and wants personalized feed
+    if current_user.is_authenticated and request.args.get('feed') == 'following':
+        followed_ids = [f.followed_id for f in current_user.following]
+        tag_ids = [t.tag_id for t in current_user.tag_follows]
+        posts = Post.query.filter(
+            (Post.author_id.in_(followed_ids)) | (Post.tags.any(Tag.id.in_(tag_ids)))
+        ).filter_by(is_published=True).order_by(Post.created_at.desc()).paginate(
+            page=page, per_page=10, error_out=False)
+    else:
+        posts = Post.query.filter_by(is_published=True).order_by(Post.created_at.desc()).paginate(
+            page=page, per_page=10, error_out=False)
     return render_template('blog/index.html', posts=posts)
+
+# Follow/unfollow author
+@blog_bp.route('/user/<int:user_id>/follow', methods=['POST'])
+@login_required
+def follow_user(user_id):
+    if user_id == current_user.id:
+        return jsonify({'status': 'error', 'message': 'Cannot follow yourself.'}), 400
+    user = User.query.get_or_404(user_id)
+    if not Follow.query.filter_by(follower_id=current_user.id, followed_id=user_id).first():
+        follow = Follow(follower_id=current_user.id, followed_id=user_id)
+        db.session.add(follow)
+        db.session.commit()
+        return jsonify({'status': 'followed'})
+    return jsonify({'status': 'already-following'})
+
+@blog_bp.route('/user/<int:user_id>/unfollow', methods=['POST'])
+@login_required
+def unfollow_user(user_id):
+    follow = Follow.query.filter_by(follower_id=current_user.id, followed_id=user_id).first()
+    if follow:
+        db.session.delete(follow)
+        db.session.commit()
+        return jsonify({'status': 'unfollowed'})
+    return jsonify({'status': 'not-following'})
+
+# Follow/unfollow tag
+@blog_bp.route('/tag/<int:tag_id>/follow', methods=['POST'])
+@login_required
+def follow_tag(tag_id):
+    if not UserTagFollow.query.filter_by(user_id=current_user.id, tag_id=tag_id).first():
+        follow = UserTagFollow(user_id=current_user.id, tag_id=tag_id)
+        db.session.add(follow)
+        db.session.commit()
+        return jsonify({'status': 'followed'})
+    return jsonify({'status': 'already-following'})
+
+@blog_bp.route('/tag/<int:tag_id>/unfollow', methods=['POST'])
+@login_required
+def unfollow_tag(tag_id):
+    follow = UserTagFollow.query.filter_by(user_id=current_user.id, tag_id=tag_id).first()
+    if follow:
+        db.session.delete(follow)
+        db.session.commit()
+        return jsonify({'status': 'unfollowed'})
+    return jsonify({'status': 'not-following'})
 
 @blog_bp.route('/post/<int:id>')
 def post(id):
@@ -102,19 +157,50 @@ def delete_post(id):
     flash('Your post has been deleted.', 'success')
     return redirect(url_for('blog.index'))
 
-@blog_bp.route('/post/<int:id>/comment', methods=['POST'])
+
+# Upvote a comment
+@blog_bp.route('/comment/<int:comment_id>/upvote', methods=['POST'])
 @login_required
-def add_comment(id):
-    post = Post.query.get_or_404(id)
-    form = CommentForm()
-    if form.validate_on_submit():
-        comment = Comment(content=form.content.data,
-                        author=current_user,
-                        post=post)
-        db.session.add(comment)
+def upvote_comment(comment_id):
+    from models import Comment
+    comment = Comment.query.get_or_404(comment_id)
+    if not CommentUpvote.query.filter_by(user_id=current_user.id, comment_id=comment_id).first():
+        upvote = CommentUpvote(user_id=current_user.id, comment_id=comment_id)
+        db.session.add(upvote)
         db.session.commit()
-        flash('Your comment has been added!', 'success')
-    return redirect(url_for('blog.post', id=id))
+        return jsonify({'status': 'upvoted'})
+    return jsonify({'status': 'already-upvoted'})
+
+@blog_bp.route('/comment/<int:comment_id>/unupvote', methods=['POST'])
+@login_required
+def unupvote_comment(comment_id):
+    upvote = CommentUpvote.query.filter_by(user_id=current_user.id, comment_id=comment_id).first()
+    if upvote:
+        db.session.delete(upvote)
+        db.session.commit()
+        return jsonify({'status': 'unupvoted'})
+    return jsonify({'status': 'not-upvoted'})
+
+# Award badge to user (admin only, for demo)
+@blog_bp.route('/user/<int:user_id>/badge/<int:badge_id>/award', methods=['POST'])
+@login_required
+def award_badge(user_id, badge_id):
+    # TODO: Add admin/permission check
+    if not UserBadge.query.filter_by(user_id=user_id, badge_id=badge_id).first():
+        user_badge = UserBadge(user_id=user_id, badge_id=badge_id)
+        db.session.add(user_badge)
+        db.session.commit()
+        return jsonify({'status': 'awarded'})
+    return jsonify({'status': 'already-has-badge'})
+
+# Trending posts widget endpoint
+@blog_bp.route('/trending')
+def trending_posts():
+    # sample: trending by most reactions in last 7 days
+    trending = Post.query.outerjoin(Reaction).filter(
+        Post.is_published == True
+    ).group_by(Post.id).order_by(func.count(Reaction.id).desc()).limit(5).all()
+    return render_template('blog/_trending.html', posts=trending)
 
 @blog_bp.route('/search')
 def search():

@@ -51,6 +51,12 @@ media/
 !static/js/
 !static/images/
 
+# New static and generated assets
+static/avatars/
+static/manifest.json
+static/js/service-worker.js
+static/sitemap.xml
+
 # Test coverage
 htmlcov/
 .tox/
@@ -71,6 +77,9 @@ coverage.xml
 .env
 .env.*
 
+# Development requirements
+requirements-dev.txt
+
 # Local development settings
 local_settings.py
 
@@ -79,6 +88,10 @@ production_settings.py
 
 # Database migrations
 migrations/
+
+# Plugins and API (extensible code)
+plugins/
+api/
 
 # Compiled translations
 *.mo
@@ -117,3 +130,6 @@ celerybeat-schedule
 
 # pytest
 .pytest_cache/
+
+# Test output
+test-output/

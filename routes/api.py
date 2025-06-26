@@ -1,12 +1,35 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request, jsonify
 from flask_login import current_user
-from models import Post, User, Comment, Tag, db
-from functools import wraps
-import jwt
-from datetime import datetime, timedelta
-from config import Config
+from models import db, PostAnalytics
+from datetime import datetime
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+@api_bp.route('/analytics/pageview', methods=['POST'])
+def pageview():
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = None
+    return jsonify({'status': 'ok'})
+
+
+
+@api_bp.route('/analytics/view/<int:post_id>', methods=['POST'])
+def post_view(post_id):
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = None
+    analytics = PostAnalytics.query.filter_by(post_id=post_id, user_id=user_id).first()
+    if not analytics:
+        analytics = PostAnalytics(post_id=post_id, user_id=user_id, views=1, last_viewed=datetime.utcnow())
+        db.session.add(analytics)
+    else:
+        analytics.views += 1
+        analytics.last_viewed = datetime.utcnow()
+    db.session.commit()
+    return jsonify({'status': 'ok'})
 
 def token_required(f):
     @wraps(f)
@@ -15,7 +38,7 @@ def token_required(f):
         if not token:
             return jsonify({'message': 'Token is missing'}), 401
         try:
-            token = token.split(' ')[1]  # Remove 'Bearer ' prefix
+            token = token.split(' ')[1]  
             data = jwt.decode(token, Config.SECRET_KEY, algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
         except:

@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %} - Kokonsa</title>
+    {% block meta %}
+    <meta name="description" content="{% block meta_description %}Kokonsa is a modern blogging platform for sharing stories, ideas, and knowledge.{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}Kokonsa Blog{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Kokonsa is a modern blogging platform for sharing stories, ideas, and knowledge.{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='images/logo.svg', _external=True) }}{% endblock %}">
+    {% endblock %}
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -119,6 +127,11 @@
     
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <!-- Analytics JS helper -->
+    <script>
+    // Example: send page view to analytics endpoint
+    fetch('/api/analytics/pageview', {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}});
+    </script>
     
     <!-- Additional Scripts Block -->
     {% block scripts %}{% endblock %}

@@ -15,11 +15,17 @@
                     <div class="author-info d-flex align-items-center">
                         <img src="{{ url_for('static', filename='avatars/' + post.author.avatar) if post.author.avatar else 'https://ui-avatars.com/api/?name=' + post.author.username }}" 
                              alt="{{ post.author.username }}" 
-                             class="rounded-circle me-2" 
+                             class="rounded-circle me-2 author-avatar" 
                              width="40" 
                              height="40">
                         <div>
-                            <div class="author-name">{{ post.author.username }}</div>
+                            <div class="author-name">{{ post.author.username }}
+                                {% for badge in post.author.badges %}
+                                    <span class="badge bg-warning ms-1 animate__animated animate__bounceIn" title="{{ badge.badge.name }}">
+                                        <img src="{{ badge.badge.icon }}" alt="badge" width="18" height="18">
+                                    </span>
+                                {% endfor %}
+                            </div>
                             <div class="post-date text-muted">
                                 {{ post.created_at.strftime('%B %d, %Y') }}
                                 {% if post.updated_at != post.created_at %}
@@ -28,24 +34,43 @@
                             </div>
                         </div>
                     </div>
-                    
-                    {% if current_user.is_authenticated and (current_user == post.author or current_user.is_admin) %}
-                    <div class="post-actions ms-auto">
-                        <a href="{{ url_for('blog.edit_post', id=post.id) }}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-edit"></i> Edit
-                        </a>
-                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
+                    <div class="ms-auto d-flex align-items-center">
+                        {% if current_user.is_authenticated and current_user.id != post.author.id %}
+                            {% set is_following = post.author.followers.filter_by(follower_id=current_user.id).first() %}
+                            <button class="btn btn-outline-success btn-sm follow-btn animate__animated"
+                                    data-author-id="{{ post.author.id }}"
+                                    onclick="toggleFollowAuthor(this, {{ post.author.id }})">
+                                <span class="follow-text">{{ 'Unfollow' if is_following else 'Follow' }}</span>
+                                <i class="fas fa-user-plus ms-1"></i>
+                            </button>
+                        {% endif %}
+                        {% if current_user.is_authenticated and (current_user == post.author or current_user.is_admin) %}
+                        <div class="post-actions ms-2">
+                            <a href="{{ url_for('blog.edit_post', id=post.id) }}" class="btn btn-outline-primary btn-sm animate__animated animate__fadeIn">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <button type="button" class="btn btn-outline-danger btn-sm animate__animated animate__fadeIn" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
                 
                 {% if post.tags %}
                 <div class="post-tags my-3">
                     {% for tag in post.tags %}
-                    <a href="{{ url_for('blog.tag', name=tag.name) }}" class="tag">
+                    <a href="{{ url_for('blog.tag', name=tag.name) }}" class="tag animate__animated animate__fadeIn">
                         {{ tag.name }}
+                        {% if current_user.is_authenticated %}
+                            {% set tag_follow = current_user.tag_follows|selectattr('tag_id', 'equalto', tag.id)|list %}
+                            <button class="btn btn-outline-info btn-xs tag-follow-btn ms-1 animate__animated"
+                                    data-tag-id="{{ tag.id }}"
+                                    onclick="toggleFollowTag(this, {{ tag.id }})">
+                                <span class="tag-follow-text">{{ 'Unfollow' if tag_follow else 'Follow' }}</span>
+                                <i class="fas fa-hashtag"></i>
+                            </button>
+                        {% endif %}
                     </a>
                     {% endfor %}
                 </div>
@@ -60,7 +85,7 @@
             <!-- Post Footer -->
             <footer class="post-footer">
                 <!-- Reactions -->
-                <div class="reactions mb-4">
+                <div class="reactions mb-4 animate__animated animate__pulse">
                     <button class="reaction-button {% if current_user.is_authenticated and post.reactions.filter_by(user=current_user, type='like').first() %}active{% endif %}"
                             onclick="handleReaction({{ post.id }}, 'like')"
                             data-reaction="like"
@@ -68,7 +93,6 @@
                         <i class="far fa-heart"></i>
                         <span class="reaction-count">{{ post.reactions.filter_by(type='like').count() }}</span>
                     </button>
-                    
                     <button class="reaction-button {% if current_user.is_authenticated and post.reactions.filter_by(user=current_user, type='clap').first() %}active{% endif %}"
                             onclick="handleReaction({{ post.id }}, 'clap')"
                             data-reaction="clap"
@@ -122,7 +146,7 @@
                 
                 <div class="comments-list">
                     {% for comment in post.comments.filter_by(is_approved=True).order_by(Comment.created_at.desc()) %}
-                    <div class="comment">
+                    <div class="comment animate__animated animate__fadeInUp">
                         <div class="comment-meta d-flex align-items-center mb-2">
                             <img src="{{ url_for('static', filename='avatars/' + comment.author.avatar) if comment.author.avatar else 'https://ui-avatars.com/api/?name=' + comment.author.username }}" 
                                  alt="{{ comment.author.username }}" 
@@ -130,12 +154,30 @@
                                  width="32" 
                                  height="32">
                             <div>
-                                <div class="comment-author">{{ comment.author.username }}</div>
+                                <div class="comment-author">{{ comment.author.username }}
+                                    {% for badge in comment.author.badges %}
+                                        <span class="badge bg-warning ms-1 animate__animated animate__bounceIn" title="{{ badge.badge.name }}">
+                                            <img src="{{ badge.badge.icon }}" alt="badge" width="14" height="14">
+                                        </span>
+                                    {% endfor %}
+                                </div>
                                 <div class="comment-date text-muted">{{ comment.created_at.strftime('%B %d, %Y %H:%M') }}</div>
                             </div>
                         </div>
                         <div class="comment-content">
                             {{ comment.content }}
+                        </div>
+                        <div class="comment-actions mt-2">
+                            {% if current_user.is_authenticated %}
+                                {% set upvoted = comment.comment_upvotes.filter_by(user_id=current_user.id).first() %}
+                                <button class="btn btn-outline-success btn-xs upvote-btn animate__animated"
+                                        data-comment-id="{{ comment.id }}"
+                                        onclick="toggleUpvoteComment(this, {{ comment.id }})">
+                                    <span class="upvote-text">{{ 'Unupvote' if upvoted else 'Upvote' }}</span>
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span class="upvote-count ms-1">{{ comment.comment_upvotes.count() }}</span>
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -146,7 +188,12 @@
     
     <!-- Sidebar -->
     <div class="col-lg-4">
-        <aside class="sidebar sticky-top" style="top: 2rem;">
+        <aside class="sidebar sticky-top animate__animated animate__fadeInRight" style="top: 2rem;">
+            <!-- Trending Posts Widget -->
+            <div class="mb-4">
+                <h3 class="sidebar-title">Trending Posts</h3>
+                <div id="trending-posts-widget"></div>
+            </div>
             <!-- Related Posts -->
             <div class="mb-4">
                 <h3 class="sidebar-title">Related Posts</h3>
@@ -159,7 +206,6 @@
                     {% endfor %}
                 </div>
             </div>
-            
             <!-- Popular Tags -->
             <div class="mb-4">
                 <h3 class="sidebar-title">Popular Tags</h3>
@@ -199,15 +245,22 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Animate.css for UI animations -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <script>
     // Initialize markdown content
     document.querySelectorAll('.post-content img').forEach(img => {
         img.classList.add('img-fluid');
     });
-    
     // Initialize code highlighting
     document.querySelectorAll('pre code').forEach((block) => {
         hljs.highlightBlock(block);
     });
+    // Trending posts widget
+    fetch('/trending').then(r => r.text()).then(html => {
+        document.getElementById('trending-posts-widget').innerHTML = html;
+    });
+    // Analytics: record post view
+    fetch('/api/analytics/view/{{ post.id }}', {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}});
 </script>
 {% endblock %}

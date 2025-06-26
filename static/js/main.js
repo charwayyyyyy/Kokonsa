@@ -51,7 +51,7 @@ function previewMarkdown(inputId, previewId) {
     }
 }
 
-// Handle comment form submission
+// Handle comment form submission (AJAX, animated)
 function handleCommentSubmit(event, postId) {
     event.preventDefault();
     const form = event.target;
@@ -68,13 +68,64 @@ function handleCommentSubmit(event, postId) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            // Append new comment to the list
             const commentsList = document.querySelector('.comments-list');
-            commentsList.insertAdjacentHTML('afterbegin', data.html);
+            const temp = document.createElement('div');
+            temp.innerHTML = data.html;
+            const newComment = temp.firstElementChild;
+            newComment.classList.add('animate__animated', 'animate__fadeInUp');
+            commentsList.insertAdjacentElement('afterbegin', newComment);
             form.reset();
         }
     })
     .catch(error => console.error('Error:', error));
+}
+
+// Follow/unfollow author (AJAX, animated)
+function toggleFollowAuthor(btn, authorId) {
+    const isFollowing = btn.querySelector('.follow-text').textContent.trim() === 'Unfollow';
+    const url = `/user/${authorId}/${isFollowing ? 'unfollow' : 'follow'}`;
+    fetch(url, {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'followed' || data.status === 'unfollowed') {
+                btn.querySelector('.follow-text').textContent = data.status === 'followed' ? 'Unfollow' : 'Follow';
+                btn.classList.add('animate__pulse');
+                setTimeout(() => btn.classList.remove('animate__pulse'), 800);
+            }
+        });
+}
+
+// Follow/unfollow tag
+function toggleFollowTag(btn, tagId) {
+    const isFollowing = btn.querySelector('.tag-follow-text').textContent.trim() === 'Unfollow';
+    const url = `/tag/${tagId}/${isFollowing ? 'unfollow' : 'follow'}`;
+    fetch(url, {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'followed' || data.status === 'unfollowed') {
+                btn.querySelector('.tag-follow-text').textContent = data.status === 'followed' ? 'Unfollow' : 'Follow';
+                btn.classList.add('animate__pulse');
+                setTimeout(() => btn.classList.remove('animate__pulse'), 800);
+            }
+        });
+}
+
+// Upvote/unupvote comment 
+function toggleUpvoteComment(btn, commentId) {
+    const isUpvoted = btn.querySelector('.upvote-text').textContent.trim() === 'Unupvote';
+    const url = `/comment/${commentId}/${isUpvoted ? 'unupvote' : 'upvote'}`;
+    fetch(url, {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'upvoted' || data.status === 'unupvoted') {
+                btn.querySelector('.upvote-text').textContent = data.status === 'upvoted' ? 'Unupvote' : 'Upvote';
+                let count = btn.querySelector('.upvote-count');
+                let n = parseInt(count.textContent);
+                count.textContent = data.status === 'upvoted' ? n + 1 : n - 1;
+                btn.classList.add('animate__tada');
+                setTimeout(() => btn.classList.remove('animate__tada'), 800);
+            }
+        });
 }
 
 // Handle infinite scroll for posts
@@ -124,15 +175,18 @@ function loadMorePosts() {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize markdown preview
     previewMarkdown('content', 'preview');
-    
     // Initialize infinite scroll
     loadMorePosts();
-    
     // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+    // Animate trending posts widget
+    const trending = document.getElementById('trending-posts-widget');
+    if (trending) {
+        trending.classList.add('animate__animated', 'animate__fadeIn');
+    }
 });
 
 // Handle file upload preview

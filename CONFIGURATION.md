@@ -1,4 +1,4 @@
-# Kokonsa Configuration Guide
+# Kokonsa Configuration
 
 ## Environment Setup
 
@@ -33,18 +33,6 @@
    - `DEFAULT_AVATAR`: Path to default user avatar
    - `SITE_LOGO`: Path to site logo
    - `EMPTY_STATE_IMAGE`: Path to empty state placeholder
-
-### Social Media Integration (Optional)
-
-1. **Twitter API**
-   - Create a Twitter Developer account
-   - Create a new application
-   - Set `TWITTER_API_KEY` and `TWITTER_API_SECRET`
-
-2. **Facebook API**
-   - Create a Facebook Developer account
-   - Create a new application
-   - Set `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET`
 
 ## Development Setup
 

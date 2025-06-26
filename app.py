@@ -1,17 +1,34 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, send_from_directory
+import os
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
 from flask_wtf import CSRFProtect
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-import os
-from dotenv import load_dotenv
+from flask_login import LoginManager
 
-# Load environment variables
-load_dotenv()
+def create_app():
+    app = Flask(__name__)
+    # ...existing code...
+    # Register blueprints
+    from routes.api import api_bp
+    app.register_blueprint(api_bp)
+    # ...register other blueprints...
 
-# Initialize Flask app
+    # Serve sitemap.xml
+    @app.route('/sitemap.xml')
+    def sitemap():
+        return send_from_directory('static', 'sitemap.xml')
+
+    # Plugin loader (scaffold)
+    import os, importlib
+    plugins_folder = os.path.join(app.root_path, 'plugins')
+    if os.path.exists(plugins_folder):
+        for fname in os.listdir(plugins_folder):
+            if fname.endswith('.py') and not fname.startswith('_'):
+                mod = importlib.import_module(f'plugins.{fname[:-3]}')
+                if hasattr(mod, 'init_plugin'):
+                    mod.init_plugin(app)
+
+    return app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kokonsa.db'
